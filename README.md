@@ -359,16 +359,26 @@ XLogin implements **per-player online-mode** by injecting a custom handler into 
 
 ### Security
 
-- **Name stealing protection**: A cracked player using a premium username cannot complete the Mojang handshake and is disconnected automatically.
+- **Name stealing protection** (strict mode): A cracked player using a premium username cannot complete the Mojang handshake and is disconnected automatically.
 - **Encryption**: The connection is encrypted with AES/CFB8 after the handshake, same as vanilla online-mode.
 - **Existing accounts**: Players who already registered as cracked are not forced into premium mode. They can opt-in with `/premium`.
+
+### Strict Mode vs Opt-In Mode
+
+The `premium-strict-mode` setting controls how premium detection works for new players:
+
+| Mode | Config | Behavior |
+|------|--------|----------|
+| **STRICT** | `premium-strict-mode: true` | Any username that exists as a Mojang account is forced through encryption verification. Cracked players **cannot** use a premium username. New premium players are auto-registered on first join. Best for: maximum security, anti name-stealing. |
+| **OPT-IN** | `premium-strict-mode: false` | Only players who have explicitly used `/premium` are verified. New players always go through `/register`, even with a premium username. After registering, they can `/premium` to enable auto-login. Best for: mixed servers where some premium players prefer `/login`. |
 
 ### Setup
 
 1. Set `premium-auto-login: true` in `config.yml`.
-2. Restart the server.
-3. Premium players will be auto-detected on first connection.
-4. Existing cracked players can use `/premium` to enable or `/unpremium` to disable.
+2. Choose your mode: `premium-strict-mode: true` (strict) or `false` (opt-in).
+3. Restart the server.
+4. **Strict mode**: Premium players are auto-detected on first connection. Cracked players cannot use premium names.
+5. **Opt-in mode**: All new players `/register` normally. Premium players can then `/premium` to enable auto-login.
 
 ---
 
