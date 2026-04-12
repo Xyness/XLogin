@@ -382,6 +382,95 @@ The `premium-strict-mode` setting controls how premium detection works for new p
 
 ---
 
+## Premium Username Change (Auto-Migration)
+
+When a premium player changes their Minecraft username on Mojang, their offline UUID changes (it's computed from the name). XLogin detects this and automatically migrates their account.
+
+### How It Works
+
+1. Player connects with their new username (e.g. "Alex" → "Alex2024").
+2. Netty handshake verifies with Mojang → same Mojang UUID as before.
+3. XLogin checks the database: finds the old account with the same `mojang_uuid` but a different offline UUID.
+4. Automatic migration: updates `player_uuid` in `xlogin_accounts`, `xlogin_sessions`, and `xlogin_2fa` in a single transaction.
+5. Publishes a `MIGRATE` sync event for cross-server notification.
+6. Player sees "Your account has been migrated from your old username. Welcome back!"
+
+No data is lost. The player keeps their password, premium flag, 2FA, email, and sessions.
+
+**Note:** This feature only applies in `uuid-mode: OFFLINE`. In `REAL` mode, the Mojang UUID is used directly, so a username change doesn't affect the UUID.
+
+---
+
+## UUID Modes
+
+The `uuid-mode` setting controls how UUIDs are assigned to premium players.
+
+| Mode | Config | Behavior |
+|------|--------|----------|
+| **OFFLINE** | `uuid-mode: OFFLINE` | All players use offline UUIDs (derived from name). Simple and safe. Default. |
+| **REAL** | `uuid-mode: REAL` | Premium players use their real Mojang UUID. Cracked players still use offline UUIDs. Enables cosmetics on Lunar/Badlion clients. |
+
+### OFFLINE Mode (Default)
+
+- All UUIDs are computed from the player name: `nameUUIDFromBytes("OfflinePlayer:" + name)`
+- Premium verification still happens for authentication, but the UUID stays offline-based
+- No risk of data loss when switching between premium/cracked
+
+### REAL Mode
+
+- Verified premium players get their real Mojang UUID (set via Paper's `PlayerProfile` API during `AsyncPlayerPreLoginEvent`)
+- Cosmetics on modified clients (Lunar, Badlion, etc.) work because the UUID matches the Mojang account
+- Cracked players still get offline UUIDs
+- A cracked player and a premium player with the same name will have different UUIDs (correct behavior)
+
+**WARNING:** Changing `uuid-mode` after players have data is destructive. Premium players' UUIDs will change, orphaning their data in other plugins. This is a "set once at server setup" decision.
+
+---
+
+## Email Password Recovery
+
+Players can link an email to their account and use it to recover their password if forgotten.
+
+### Setup
+
+1. Enable in config: `email-recovery.enabled: true`
+2. Configure SMTP settings (host, port, username, password, from address, TLS)
+3. Restart or `/xlogin reload`
+
+### Player Commands
+
+- `/email set <email>` — Link an email to your account (must be authenticated)
+- `/email remove` — Remove linked email
+- `/recover <username>` — Request a recovery code (sent to linked email)
+- `/recover <username> <code> <newpassword>` — Reset password with the recovery code
+
+### How It Works
+
+1. Player forgets their password.
+2. Runs `/recover <username>` → XLogin sends a 6-digit code to their linked email.
+3. Player enters `/recover <username> <code> <newpassword>` → password is reset.
+4. Player can now `/login` with the new password.
+
+### Configuration
+
+```yaml
+email-recovery:
+  enabled: false
+  smtp:
+    host: "smtp.gmail.com"
+    port: 587
+    username: ""
+    password: ""
+    from: "noreply@example.com"
+    tls: true
+  code-expiry: 10  # minutes
+  cooldown: 5      # minutes between requests
+```
+
+Recovery codes are stored in memory (not database). They expire after `code-expiry` minutes. A cooldown prevents spam.
+
+---
+
 ## Two-Factor Authentication (2FA)
 
 XLogin supports TOTP (Time-based One-Time Password), compatible with Google Authenticator, Authy, Microsoft Authenticator, and similar apps.
@@ -409,7 +498,7 @@ While unauthenticated, players are restricted from:
 |--------|----------|
 | Movement (walking) | Position locked, head rotation allowed |
 | Chat | Blocked |
-| Commands | Only `/login`, `/register`, `/l`, `/reg`, `/2fa`, and configured allowed commands |
+| Commands | Only `/login`, `/register`, `/l`, `/reg`, `/2fa`, `/recover`, `/email`, and configured allowed commands |
 | Block break/place | Blocked |
 | Interactions | Blocked |
 | Inventory | Blocked |
@@ -428,7 +517,7 @@ XLogin creates the following tables in XCore's shared database:
 
 | Table | Purpose |
 |-------|---------|
-| `xlogin_accounts` | Player accounts (UUID, name, password hash, IPs, login count, premium flag, Mojang UUID) |
+| `xlogin_accounts` | Player accounts (UUID, name, password hash, IPs, login count, premium flag, Mojang UUID, email) |
 | `xlogin_sessions` | Active sessions for cross-server auto-login (UUID, IP, timestamp) |
 | `xlogin_ip_bans` | Temporarily banned IPs (IP, reason, expiry) |
 | `xlogin_2fa` | 2FA TOTP secrets (UUID, secret key, enabled date) |
@@ -474,6 +563,7 @@ All messages support [MiniMessage](https://docs.advntr.dev/minimessage/format.ht
 | `{server}` | Proxy redirect message |
 | `{secret}` | 2FA setup |
 | `{last_login}` | Accounts list |
+| `{email}` | Email set confirmation |
 
 ---
 
