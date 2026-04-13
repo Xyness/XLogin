@@ -1,24 +1,11 @@
 # Version
-version: 1.0.2
+version: 1.0.3
 
 # Update date
-date: 12/04/2026
+date: 13/04/2026
 
 # Update notes
 update-notes:
-- Premium auto-login via per-player online-mode (Netty pipeline injection)
-- Premium strict mode vs opt-in mode
-- Premium username change detection and automatic account migration
-- UUID modes (OFFLINE / REAL) for Lunar/Badlion cosmetics support
-- Two-factor authentication (TOTP / Google Authenticator)
-- Email password recovery via SMTP
-- Cross-server sessions via shared database
-- Proxy support with role-based routing (AUTH / LOBBY / GAME)
-- Bedrock auto-login (Geyser / Floodgate)
-- IP rate limiting and temporary IP bans
-- Admin tools (forcelogin, resetpassword, info, accounts, import)
-- Improved movement blocking (vehicles, portals, teleports)
-- Join/quit message control
-- Persistent title/actionbar/bossbar prompts
-- Last login info display
-- AuthMe migration support
+- Add proxy kick-on-bypass security (kick players connecting without valid auth session)
+- Add usage messages for all commands when run without arguments
+- Add config and lang auto-update on startup
