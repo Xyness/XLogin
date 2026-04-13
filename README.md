@@ -66,6 +66,7 @@ Advanced authentication addon for [XCore](https://github.com/Xyness/XCore). Prov
 | `/xlogin info <player>` | `xlogin.admin` | View account info (register date, IPs, login count) |
 | `/xlogin accounts <ip>` | `xlogin.admin` | View all accounts from a given IP |
 | `/xlogin import authme <table>` | `xlogin.admin` | Import accounts from an AuthMe database table |
+| `/xlogin import jpremium <table>` | `xlogin.admin` | Import accounts from an JPremium database table |
 | `/unregister <player>` | `xlogin.admin` | Delete a player's account |
 
 ### Permissions
