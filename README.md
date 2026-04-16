@@ -225,6 +225,13 @@ premium-auto-login: false
 # Messages Display
 # ============================================
 
+# Toggle chat messages on automatic authentication
+# Only affects LOBBY/GAME servers (AUTH never shows messages)
+messages:
+  session-resumed: true       # "Session resumed" on reconnect
+  premium-auto-logged: true   # "Authenticated automatically" for premium
+  login-success: true         # "Successfully logged in" after /login
+
 # Title/subtitle shown on join
 login-title:
   enabled: true
