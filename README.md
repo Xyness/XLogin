@@ -7,17 +7,22 @@ Advanced authentication addon for [XCore](https://github.com/Xyness/XCore). Prov
 ## Features
 
 - **Login / Register** - `/login`, `/register`, `/changepassword`
-- **Premium Auto-Login** - Per-player online-mode via Netty pipeline injection. Premium players connect seamlessly with their real Mojang skin, no `/login` needed. Cracked players using a premium name are automatically rejected.
+- **Premium Auto-Login** - Per-player online-mode via Netty pipeline injection (standalone) or proxy-level verification (Velocity/BungeeCord). Premium players connect seamlessly with their real Mojang skin, no `/login` needed.
 - **Two-Factor Authentication (2FA)** - TOTP support (Google Authenticator, Authy, etc.)
 - **Cross-Server Sessions** - Database-backed sessions shared across all servers. Login once, authenticated everywhere.
 - **Proxy Support (BungeeCord / Velocity)** - Role-based server configuration (AUTH, LOBBY, GAME) with automatic player routing.
 - **Bedrock Auto-Login** - Automatic authentication for Geyser/Floodgate players.
 - **Security** - IP rate limiting, temporary IP bans, IP lock, brute-force protection, password strength requirements.
+- **Proxy Bypass Protection** - Players connecting to LOBBY/GAME without a valid session are automatically kicked.
+- **Single JAR** - One JAR file works on Velocity, BungeeCord, AND as an XCore addon. No separate proxy plugin needed.
+- **Smart Routing** - Premium and session players skip the auth server entirely on proxy networks.
+- **Password Security** - Passwords are masked from console logs via Log4j filter.
 - **Player Restrictions** - Blindness, movement blocking, interaction blocking, vehicle/portal/teleport blocking until authenticated.
 - **Join/Quit Message Control** - Join messages are hidden until authentication, quit messages hidden if never logged in.
 - **Persistent Title/ActionBar/BossBar** - Configurable login prompts that persist until the player authenticates.
-- **Admin Tools** - Force login, reset password, account info, IP lookup, AuthMe import.
+- **Admin Tools** - Force login, reset password, account info, IP lookup, AuthMe & JPremium import.
 - **Last Login Info** - Shows last login date and IP after successful authentication.
+- **Update Notifications** - Admins notified of available updates on join (`xlogin.update` permission).
 
 ---
 
@@ -31,11 +36,23 @@ Advanced authentication addon for [XCore](https://github.com/Xyness/XCore). Prov
 
 ## Installation
 
+XLogin is a **single JAR** that works on three platforms:
+
+### Standalone (Paper/Folia)
+
 1. Install **XCore** in your `plugins/` folder.
-2. Place the **XLogin** JAR in `plugins/XCore/addons/`.
-3. Start the server. XLogin will generate its config files in `plugins/XCore/addons/XLogin/`.
-4. Edit `config.yml` and `lang.yml` to your needs.
+2. Place `XLogin.jar` in `plugins/XCore/addons/`.
+3. Start the server. XLogin generates its config in `plugins/XCore/addons/XLogin/`.
+4. Edit `config.yml` and `lang.yml`.
 5. Restart or `/xlogin reload`.
+
+### Proxy Network (Velocity / BungeeCord)
+
+Place the **same `XLogin.jar`** in two locations:
+1. **Proxy**: `plugins/` folder of Velocity or BungeeCord → generates `config.yml` (database + Redis + routing)
+2. **Each backend server**: `plugins/XCore/addons/` → generates `config.yml` (full auth config)
+
+The proxy handles premium verification and smart routing. The backend handles login/register, restrictions, 2FA, etc.
 
 ---
 
@@ -75,6 +92,7 @@ Advanced authentication addon for [XCore](https://github.com/Xyness/XCore). Prov
 |-----------|-------------|
 | `xlogin.admin` | Access to all admin commands |
 | `xlogin.notify` | Receive admin notifications (failed logins, registrations) |
+| `xlogin.update` | Receive update notifications on join |
 
 ---
 
@@ -247,6 +265,9 @@ proxy:
   auth-server: "auth"
   # Delay before redirect in ticks (20 = 1 second)
   redirect-delay: 20
+  # Kick players who connect to LOBBY/GAME without a valid auth session
+  # Extra security: prevents bypassing the AUTH server (e.g. direct connection to backend)
+  kick-on-bypass: false
 
 # ============================================
 # Two-Factor Authentication (2FA / TOTP)
@@ -276,33 +297,55 @@ update:
 
 ## Proxy Setup Guide
 
-XLogin supports BungeeCord and Velocity networks with a role-based configuration. Install XLogin on every backend server and configure the `proxy` section accordingly.
+XLogin is a **single JAR** that works on Velocity, BungeeCord, and Paper. Place the same file on both the proxy and backend servers.
 
 ### Architecture
 
 ```
-                    +----------------------+
-                    |   BungeeCord/Velocity |
-                    |                      |
-                    |  Default server: auth |
-                    +----------+-----------+
-                               |
-              +----------------+----------------+
-              |                |                |
-        +-----v-----+   +-----v----+    +------v------+
-        |   AUTH     |   |  LOBBY   |    |    GAME     |
-        |            |   |          |    |  (skyblock,  |
-        |  /login    |   |  Session |    |  minigames)  |
-        |  /register |   |  auto-   |    |  Session     |
-        |  Premium   |   |  login   |    |  auto-login  |
-        |  handshake |   |          |    |              |
-        +------------+   +----------+    +-------------+
+  Velocity / BungeeCord
+  + XLogin.jar (proxy mode)
+         |
+         ├─ Premium player? → Direct to LOBBY (skips auth)
+         ├─ Valid session?   → Direct to LOBBY (skips auth)
+         └─ Otherwise        → AUTH server
+                                |
+    +-----------+-----------+---+
+    |           |           |
+  AUTH       LOBBY        GAME
+  + XLogin   + XLogin    + XLogin
+  /login     Session     Session
+  /register  auto-login  auto-login
 ```
 
-### Server Configurations
+### Setup
 
-**Auth Server** (`plugins/XCore/addons/XLogin/config.yml`):
+**1. Proxy** — Place `XLogin.jar` in the proxy's `plugins/` folder. Configure `plugins/xlogin/config.yml`:
+
 ```yaml
+database:
+  type: MYSQL
+  host: localhost
+  port: 3306
+  database: minecraft    # Same as XCore
+  username: root
+  password: ""
+
+redis:
+  enabled: true          # Recommended
+  host: localhost
+  port: 6379
+  password: ""
+
+premium-strict-mode: false  # Must match backend
+redirect-server: "lobby"    # Where premium/session players go
+session-timeout: 30         # Must match backend
+```
+
+**2. Backend servers** — Place `XLogin.jar` in `plugins/XCore/addons/` on each server.
+
+Auth server (`config.yml`):
+```yaml
+premium-auto-login: true
 proxy:
   enabled: true
   role: AUTH
@@ -310,35 +353,31 @@ proxy:
   redirect-delay: 20
 ```
 
-**Lobby Server**:
+Lobby / Game servers:
 ```yaml
+premium-auto-login: true
 proxy:
   enabled: true
-  role: LOBBY
+  role: LOBBY    # or GAME
   auth-server: "auth"
 ```
 
-**Game Servers** (skyblock, minigames, etc.):
-```yaml
-proxy:
-  enabled: true
-  role: GAME
-  auth-server: "auth"
-```
+### Connection Flow
 
-### Flow
-
-1. Player connects to the network. The proxy sends them to the **AUTH** server.
-2. On the AUTH server:
-   - **Premium player**: Netty handshake verifies with Mojang. Auto-login. Instant redirect to lobby (player sees nothing on the auth server).
-   - **Cracked player**: `/register` or `/login`. Redirect to lobby after auth.
-3. On the **LOBBY** server: session found in database. Auto-login, no prompt.
-4. Player switches to a **GAME** server: session found. Auto-login.
-5. If a player somehow reaches LOBBY/GAME without a valid session, they are sent back to the AUTH server.
+1. Player connects to the proxy.
+2. XLogin (proxy) checks the database:
+   - **Premium player** → forces online-mode, Mojang handshake, routes **directly to lobby** (skips auth entirely).
+   - **Valid session** → routes **directly to lobby** (skips auth).
+   - **Otherwise** → routes to the **AUTH** server.
+3. On the AUTH server:
+   - Cracked player: `/register` or `/login` → redirected to lobby after auth.
+   - Premium player (if not routed by proxy): auto-login → redirect to lobby.
+4. On LOBBY/GAME: session is valid → silently authenticated.
+5. If a player reaches LOBBY/GAME without a valid session → **kicked** (proxy bypass protection).
 
 ### Cross-Server Sessions
 
-Sessions are stored in the shared XCore database (`xlogin_sessions` table). All servers connected to the same database see the same sessions. No Redis required (but if XCore's sync manager is enabled with Redis, session creation is also broadcast for instant propagation).
+Sessions are stored in the shared XCore database (`xlogin_sessions` table). All servers see the same sessions. Redis is recommended for instant propagation but not required.
 
 ---
 
@@ -346,11 +385,14 @@ Sessions are stored in the shared XCore database (`xlogin_sessions` table). All 
 
 ### How It Works
 
-XLogin implements **per-player online-mode** by injecting a custom handler into the server's Netty pipeline. This is the same technique used by plugins like JPremium.
+Premium auto-login works differently depending on your setup:
+
+**Standalone (no proxy):**
+XLogin injects a custom handler into the server's Netty pipeline (same technique as JPremium):
 
 1. Player connects to the server (offline-mode).
 2. XLogin's Netty handler intercepts the `LoginStart` packet.
-3. Checks if the player's name is a premium Mojang account (via API or database flag).
+3. Checks if the player is a premium Mojang account (via API or database flag).
 4. If premium: sends an `EncryptionRequest` to the client.
 5. The client authenticates with Mojang and responds with `EncryptionResponse`.
 6. XLogin decrypts the shared secret, enables AES/CFB8 encryption on the channel.
@@ -358,11 +400,23 @@ XLogin implements **per-player online-mode** by injecting a custom handler into 
 8. If verified: stores the player's Mojang UUID and skin textures, lets the login proceed.
 9. On join: auto-registers (if new), applies premium skin, authenticates instantly.
 
+**Behind a proxy (Velocity / BungeeCord):**
+The Netty injection is disabled behind a proxy. Instead, XLogin on the proxy handles verification directly:
+
+1. Player connects to the proxy.
+2. XLogin checks the database for `premium=1` (or Mojang API in strict mode).
+3. If premium: forces online-mode for that connection, proxy does Mojang handshake.
+4. Verified profile (UUID + textures) is sent to the backend via Redis + plugin messaging.
+5. Player is routed directly to the lobby (skips auth server).
+
+See the [Proxy Setup Guide](#proxy-setup-guide) for installation instructions.
+
 ### Security
 
 - **Name stealing protection** (strict mode): A cracked player using a premium username cannot complete the Mojang handshake and is disconnected automatically.
 - **Encryption**: The connection is encrypted with AES/CFB8 after the handshake, same as vanilla online-mode.
-- **Existing accounts**: Players who already registered as cracked are not forced into premium mode. They can opt-in with `/premium`.
+- **Existing accounts**: Players who already registered as cracked are not forced into premium mode. They can opt-in with `/premium` (opt-in mode only).
+- **Console security**: `/login`, `/register`, and `/changepassword` commands are masked from console logs.
 
 ### Strict Mode vs Opt-In Mode
 
@@ -370,16 +424,24 @@ The `premium-strict-mode` setting controls how premium detection works for new p
 
 | Mode | Config | Behavior |
 |------|--------|----------|
-| **STRICT** | `premium-strict-mode: true` | Any username that exists as a Mojang account is forced through encryption verification. Cracked players **cannot** use a premium username. New premium players are auto-registered on first join. Best for: maximum security, anti name-stealing. |
-| **OPT-IN** | `premium-strict-mode: false` | Only players who have explicitly used `/premium` are verified. New players always go through `/register`, even with a premium username. After registering, they can `/premium` to enable auto-login. Best for: mixed servers where some premium players prefer `/login`. |
+| **STRICT** | `premium-strict-mode: true` | Any username that exists as a Mojang account is forced through verification. Cracked players **cannot** use a premium name. `/premium` and `/unpremium` commands are disabled. Best for: maximum security. |
+| **OPT-IN** | `premium-strict-mode: false` | Only players who used `/premium` are verified. Everyone `/register`s first, then can opt-in. `/premium` and `/unpremium` commands available. Best for: mixed servers. |
 
-### Setup
+### Setup (Standalone)
 
 1. Set `premium-auto-login: true` in `config.yml`.
 2. Choose your mode: `premium-strict-mode: true` (strict) or `false` (opt-in).
 3. Restart the server.
 4. **Strict mode**: Premium players are auto-detected on first connection. Cracked players cannot use premium names.
 5. **Opt-in mode**: All new players `/register` normally. Premium players can then `/premium` to enable auto-login.
+
+### Setup (Proxy)
+
+1. Place `XLogin.jar` in the proxy's `plugins/` folder AND in `plugins/XCore/addons/` on each backend.
+2. Configure the proxy's `config.yml` with the same database and Redis as XCore.
+3. Set `premium-strict-mode` to match your backend config.
+4. On each backend: set `premium-auto-login: true` and `proxy.enabled: true`.
+5. Restart the proxy and all backend servers.
 
 ---
 
@@ -539,6 +601,25 @@ To import accounts from an AuthMe database:
 - The AuthMe table must be in the **same database** as XCore.
 - Passwords are **not** migrated (AuthMe uses `$SHA$salt$hash`, XLogin uses a different format). Imported players will need to reset their password via `/changepassword` or an admin can use `/xlogin resetpassword <player> <newpassword>`.
 - Only players who already exist in XCore's `xcore_players` table are imported.
+- Duplicate accounts (already registered in XLogin) are skipped.
+
+---
+
+## JPremium Migration
+
+To import accounts from a JPremium database:
+
+```
+/xlogin import jpremium <table_name>
+```
+
+The default JPremium table name is `jp_data`.
+
+**Important notes:**
+- The JPremium table must be in the **same database** as XCore.
+- Passwords are **not** migrated (JPremium uses SHA256/SHA512/BCrypt, XLogin uses a different salt:hash format). Imported players will need to reset their password via `/changepassword` or an admin can use `/xlogin resetpassword <player> <newpassword>`.
+- **Premium status** and **Mojang UUID** are imported from JPremium.
+- Only players who already exist in XCore's `players` table are imported.
 - Duplicate accounts (already registered in XLogin) are skipped.
 
 ---
