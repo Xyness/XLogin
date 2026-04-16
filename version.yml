@@ -1,9 +1,16 @@
 # Version
-version: 1.0.4
+version: 1.0.5
 
 # Update date
-date: 13/04/2026
+date: 16/04/2026
 
 # Update notes
 update-notes:
-- Add importation from JPremium
+- Single JAR for Velocity, BungeeCord, and XCore addon
+- Premium and session players now skip the auth server entirely (proxy routing)
+- Fix /unpremium race condition with proxy premium verification
+- Fix session resume on LOBBY/GAME showing unnecessary message
+- Disable /premium and /unpremium commands in strict mode
+- Mask passwords from console logs (Log4j filter)
+- Always kick players on LOBBY/GAME without valid session (removed kick-on-bypass option)
+- Session resume on AUTH server now redirects to lobby automatically
