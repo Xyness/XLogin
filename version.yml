@@ -1,9 +1,9 @@
 # Version
-version: 1.0.8
+version: 1.0.9
 
 # Update date
-date: 19/04/2026
+date: 20/04/2026
 
 # Update notes
 update-notes:
-- Fixed MySQL index issues
+- Fixed premium auto login on subservers
