@@ -1,9 +1,9 @@
 # Version
-version: 1.0.11
+version: 1.0.12
 
 # Update date
-date: 06/05/2026
+date: 14/05/2026
 
 # Update notes
 update-notes:
-- Fixed LuckPerms issue
+- Moved to XCore 1.0.3
