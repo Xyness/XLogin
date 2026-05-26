@@ -1,9 +1,9 @@
 # Version
-version: 1.0.12
+version: 1.0.13
 
 # Update date
-date: 14/05/2026
+date: 26/05/2026
 
 # Update notes
 update-notes:
-- Moved to XCore 1.0.3
+- Bump to version 1.0.4 of XCore
