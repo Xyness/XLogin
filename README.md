@@ -17,7 +17,7 @@ Advanced authentication addon for [XCore](https://github.com/Xyness/XCore). Prov
 - **Single JAR** - One JAR file works on Velocity, BungeeCord, AND as an XCore addon. No separate proxy plugin needed.
 - **Smart Routing** - Premium and session players skip the auth server entirely on proxy networks.
 - **Password Security** - Passwords are masked from console logs via Log4j filter.
-- **Player Restrictions** - Blindness, movement blocking, interaction blocking, vehicle/portal/teleport blocking until authenticated.
+- **Player Restrictions** - Optional blindness, movement blocking, interaction blocking, vehicle/portal/teleport blocking until authenticated.
 - **Join/Quit Message Control** - Join messages are hidden until authentication, quit messages hidden if never logged in.
 - **Persistent Title/ActionBar/BossBar** - Configurable login prompts that persist until the player authenticates.
 - **Admin Tools** - Force login, reset password, account info, IP lookup, AuthMe & JPremium import.
@@ -132,8 +132,12 @@ max-accounts-per-ip: 3
 # Player Restrictions (before login)
 # ============================================
 
-# Hide player from others until logged in (invisible + blindness)
+# Hide player from others until logged in (invisible + hidden from tab)
 hide-unlogged-players: true
+
+# Apply a blindness effect to unlogged players (dark screen until login)
+# Independent from hide-unlogged-players (e.g. set to false for a Limbo server)
+blindness-effect: true
 
 # Prevent movement before login (allows head rotation)
 block-movement: true
@@ -566,6 +570,7 @@ While unauthenticated, players are restricted from:
 
 | Action | Behavior |
 |--------|----------|
+| Vision | Optional blindness effect (`blindness-effect`, on by default) |
 | Movement (walking) | Position locked, head rotation allowed |
 | Chat | Blocked |
 | Commands | Only `/login`, `/register`, `/l`, `/reg`, `/2fa`, `/recover`, `/email`, and configured allowed commands |
