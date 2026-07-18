@@ -1,9 +1,9 @@
 # Version
-version: 1.0.13
+version: 1.0.14
 
 # Update date
-date: 26/05/2026
+date: 18/07/2026
 
 # Update notes
 update-notes:
-- Bump to version 1.0.4 of XCore
+- Added blindness-effect config option (toggle the pre-login blindness independently from hide-unlogged-players)
