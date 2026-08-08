@@ -1,9 +1,13 @@
 # Version
-version: 1.0.14
+version: 1.0.16
 
 # Update date
-date: 18/07/2026
+date: 08/08/2026
 
 # Update notes
 update-notes:
-- Added blindness-effect config option (toggle the pre-login blindness independently from hide-unlogged-players)
+- "Fixed players staying blind after login when they disconnected before authenticating"
+- "Fixed premium players having to type /login behind a proxy when the profile arrived late"
+- "Added premium.proxy-grace-ms, the wait for a proxy profile before the password prompt"
+- "A premium flag lookup that fails is retried once and logged instead of downgrading the player"
+- "Fixed unauthenticated players being visible to anyone who joined after them"
