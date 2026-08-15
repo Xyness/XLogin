@@ -1,13 +1,38 @@
 # Version
-version: 1.0.16
+version: 1.1.0
 
 # Update date
-date: 08/08/2026
+date: 15/08/2026
 
 # Update notes
 update-notes:
-- "Fixed players staying blind after login when they disconnected before authenticating"
-- "Fixed premium players having to type /login behind a proxy when the profile arrived late"
-- "Added premium.proxy-grace-ms, the wait for a proxy profile before the password prompt"
-- "A premium flag lookup that fails is retried once and logged instead of downgrading the player"
-- "Fixed unauthenticated players being visible to anyone who joined after them"
+- "Added a map captcha, the code has to be copied before an account is registered"
+- "Added eight single use 2FA backup codes, stored hashed"
+- "Common passwords are refused, from a local list you can edit"
+- "Added a connection limit per address, separate from the failed attempt limit"
+- "Passwords are hashed with PBKDF2-HMAC-SHA256 instead of a single SHA-256 round"
+- "Existing accounts are upgraded at their next login, no reset needed"
+- "Fixed an authentication bypass on premium profiles that were verified but never claimed"
+- "A premium profile now expires and is bound to the connection that earned it"
+- "Fixed passwords being rejected when they contained % $ ! @ # or most other symbols"
+- "Fixed accounts being lost when the server switched between offline and online mode"
+- "Passwords, sessions and 2FA now follow the returning player"
+- "Fixed a Mojang name change leaving the account under the old name in REAL uuid mode"
+- "Fixed the accounts table missing its premium, mojang_uuid and email columns"
+- "Fixed premium mode sending Mojang verified players to the password prompt"
+- "Premium auto-login refuses to install itself on a server in online-mode=true, and says why"
+- "Premium checks use the XCore thread pool and time out"
+- "Changing or resetting a password invalidates the existing sessions"
+- "A 2FA code can no longer be replayed inside its validity window"
+- "The failed attempt counter per address expires instead of growing without bound"
+- "Usernames are validated and URL encoded before reaching the Mojang session server"
+- "Fixed the Reset password, Toggle 2FA, Delete account and Invalidate session buttons"
+- "Moved the title, boss bar and action bar texts to lang/<code>.yml"
+- "Their timings, colours and switches stay in config.yml"
+- "The eighteen restriction handlers stop working when nobody is waiting to log in"
+- "Account migration no longer runs its database work on the main thread"
+- "AuthMe and JPremium imports warn that imported accounts need a password reset"
+- "Fixed bungee.yml announcing version 1.0.12"
+- "Fixed a duplicate 2fa-not-enabled key logging a warning on every start"
+- "config.yml is grouped by subject"
+- "Language files follow the single language setting of XCore, French included"
