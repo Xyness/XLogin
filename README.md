@@ -1,193 +1,148 @@
 # XLogin
 
-Advanced authentication addon for [XCore](https://github.com/Xyness/XCore). Provides a complete login/register system with premium auto-login, 2FA, cross-server sessions, and proxy support.
-
----
+Authentication for [XCore](https://github.com/Xyness/XCore): login and register, premium
+auto-login, 2FA, cross-server sessions, proxy support.
 
 ## Features
 
-- **Login / Register** - `/login`, `/register`, `/changepassword`
-- **Premium Auto-Login** - Per-player online-mode via Netty pipeline injection (standalone) or proxy-level verification (Velocity/BungeeCord). Premium players connect seamlessly with their real Mojang skin, no `/login` needed. A verified profile expires after 30 seconds and is bound to the connection that earned it, so it can never be picked up by another player joining under the same name.
-- **Two-Factor Authentication (2FA)** - TOTP support (Google Authenticator, Authy, etc.). Accepted
-  codes are single-use, so a code observed inside its 90-second window cannot be replayed.
-- **Cross-Server Sessions** - Database-backed sessions shared across all servers. Login once, authenticated everywhere.
-- **Proxy Support (BungeeCord / Velocity)** - Role-based server configuration (AUTH, LOBBY, GAME) with automatic player routing.
-- **Bedrock Auto-Login** - Automatic authentication for Geyser/Floodgate players.
-- **Security** - IP rate limiting, temporary IP bans, IP lock, brute-force protection, password strength requirements.
-- **Password Hashing** - PBKDF2-HMAC-SHA256, 210 000 iterations, per-account salt, stored as
-  `pbkdf2$iterations$salt$hash`. Accounts created before this scheme are re-hashed transparently on
-  their next successful login — no reset, no downtime. Changing or resetting a password invalidates
-  every existing session for that account.
-- **Proxy Bypass Protection** - Players connecting to LOBBY/GAME without a valid session are automatically kicked.
-- **Single JAR** - One JAR file works on Velocity, BungeeCord, AND as an XCore addon. No separate proxy plugin needed.
-- **Smart Routing** - Premium and session players skip the auth server entirely on proxy networks.
-- **Password Security** - Passwords are masked from console logs via Log4j filter.
-- **Player Restrictions** - Optional blindness, movement blocking, interaction blocking, vehicle/portal/teleport blocking until authenticated.
-- **Join/Quit Message Control** - Join messages are hidden until authentication, quit messages hidden if never logged in.
-- **Persistent Title/ActionBar/BossBar** - Configurable login prompts that persist until the player authenticates.
-- **Admin Tools** - Force login, reset password, account info, IP lookup, AuthMe & JPremium import.
-- **Last Login Info** - Shows last login date and IP after successful authentication.
-- **Update Notifications** - Admins notified of available updates on join (`xlogin.update` permission).
+- `/login`, `/register`, `/changepassword`.
+- Online mode per player: Netty pipeline injection on a standalone server, proxy-level verification
+  on Velocity and BungeeCord. Premium players connect with their Mojang skin and no password. A
+  verified profile expires after 30 seconds and is bound to the connection that earned it.
+- TOTP two-factor (Google Authenticator, Authy and similar). An accepted code is single-use.
+- Sessions stored in the database and shared across servers.
+- Proxy support with a role per server (AUTH, LOBBY, GAME) and automatic routing.
+- Bedrock players authenticated through Geyser and Floodgate.
+- Rate limiting per address, temporary IP bans, IP lock, brute-force protection, password strength
+  rules.
+- PBKDF2-HMAC-SHA256, 210 000 iterations, salt per account, stored as
+  `pbkdf2$iterations$salt$hash`. Older accounts are re-hashed on their next login. Changing or
+  resetting a password invalidates every session on that account.
+- Players reaching a LOBBY or GAME server without a valid session are kicked.
+- One jar for Velocity, BungeeCord and XCore.
+- Passwords masked in the console through a Log4j filter.
+- Optional restrictions before authentication: blindness, movement, interaction, vehicles, portals,
+  teleports.
+- Join messages held until authentication, quit message hidden for a player who never logged in.
+- Title, action bar and boss bar prompts until the player authenticates.
+- Admin tools: force login, reset password, account info, address lookup, AuthMe and JPremium
+  import.
+- Last login date and address shown after a successful login.
+- Update notifications on join (`xlogin.update`).
 
----
+### Registration captcha
 
-### Registration Captcha
-- A short code drawn on a **map**, typed back with `/captcha` before `/register` is accepted
-- Reading it means rendering an image: a person does it without thinking, a headless bot cannot
-- This is the only check on that path that tells them apart — everything else a bot sends to
-  `/register` is exactly what a player sends
-- Configurable length and number of attempts
+A code drawn on a map, typed back with `/captcha` before `/register` is accepted. Length and number
+of attempts are configurable.
 
-### Password Quality
-- Refuses the passwords everybody tries first, from `passwords.txt` in the addon folder
-- Length and character-class rules describe the *shape* of a password; a breach list describes
-  whether it is already known, which is what actually gets accounts taken over
-- Nothing is sent anywhere: the list is local and so is the check
+### Password quality
 
-### Connection Rate Limit
-- Connections per address per window, refused at pre-login
-- Distinct from the failed-login limit: a bot net cycling through names never fails a login,
-  it registers — so counting failures never sees it
+Common passwords are refused, from `passwords.txt` in the addon folder. The list is local, nothing
+is sent anywhere.
 
-### 2FA Recovery Codes
-- `/2fa codes` issues eight single-use codes, shown once and stored hashed
-- `/2fa recover <code>` gets an account back when the device is gone, without an administrator
-  editing the database
+### Connection rate limit
 
-### UUID Mode Changes
-- Switching between offline and online UUIDs moves the account onto the new UUID instead of
-  leaving it orphaned beside a fresh one — password, sessions and 2FA follow the player
+Connections per address per window, refused at pre-login. Separate from the failed-login limit.
+
+### 2FA recovery codes
+
+`/2fa codes` issues eight single-use codes, shown once and stored hashed. `/2fa recover <code>`
+restores access.
+
+### UUID mode changes
+
+Switching between offline and online UUIDs moves the account onto the new UUID. Password, sessions
+and 2FA follow.
 
 ## Requirements
 
-- **Paper 1.21.1+** (or Folia)
-- **Java 21+**
-- **XCore 1.0.0+** - The core framework (must be installed as a plugin)
-
----
+- Paper 1.21.1+ or Folia
+- Java 21+
+- XCore
 
 ## Installation
 
-XLogin is a **single JAR** that works on three platforms:
+### Standalone
 
-### Standalone (Paper/Folia)
-
-1. Install **XCore** in your `plugins/` folder.
-2. Place `XLogin.jar` in `plugins/XCore/addons/`.
-3. Start the server. XLogin generates its config in `plugins/XCore/addons/XLogin/`.
+1. Install XCore in `plugins/`.
+2. Put `XLogin.jar` in `plugins/XCore/addons/`.
+3. Start the server. The config is written to `plugins/XCore/addons/XLogin/`.
 4. Edit `config.yml` and `lang/<code>.yml`.
-5. Restart or `/xlogin reload`.
+5. Restart or run `/xlogin reload`.
 
-### Proxy Network (Velocity / BungeeCord)
+### Behind a proxy
 
-Place the **same `XLogin.jar`** in two locations:
-1. **Proxy**: `plugins/` folder of Velocity or BungeeCord → generates `config.yml` (database + Redis + routing)
-2. **Each backend server**: `plugins/XCore/addons/` → generates `config.yml` (full auth config)
-
-The proxy handles premium verification and smart routing. The backend handles login/register, restrictions, 2FA, etc.
-
----
+Put the same jar in two places: the proxy's `plugins/` folder (database, Redis, routing) and
+`plugins/XCore/addons/` on each backend (full auth config). The proxy handles premium verification
+and routing, the backend handles login, register, restrictions and 2FA.
 
 ## Commands
 
-### Player Commands
+### Players
 
 | Command | Aliases | Description |
 |---------|---------|-------------|
-| `/login <password>` | `/l` | Login to your account |
-| `/register <password> <confirm>` | `/reg` | Register a new account |
+| `/login <password>` | `/l` | Log in |
+| `/register <password> <confirm>` | `/reg` | Create an account |
 | `/changepassword <old> <new>` | `/changepw` | Change your password |
-| `/logout` | | Logout and disconnect |
-| `/premium` | | Enable premium auto-login for your account |
-| `/unpremium` | | Disable premium auto-login |
+| `/logout` | | Log out and disconnect |
+| `/premium` | | Enable premium auto-login |
+| `/unpremium` | | Disable it |
 | `/2fa setup` | | Set up two-factor authentication |
-| `/2fa <code>` | | Verify a 2FA code (during login or setup) |
-| `/2fa disable` | | Disable two-factor authentication |
+| `/2fa <code>` | | Enter a code |
+| `/2fa codes` | | Issue eight recovery codes |
+| `/2fa recover <code>` | | Recover with one |
+| `/2fa disable` | | Turn 2FA off |
+| `/captcha <code>` | | Answer the registration captcha |
+| `/email set <email>`, `/email remove` | | Manage the recovery email |
+| `/recover <username> [code] [new password]` | | Password recovery by email |
 
-### Admin Commands
+### Admins
 
 | Command | Permission | Description |
 |---------|-----------|-------------|
-| `/xlogin reload` | `xlogin.admin` | Reload configuration and language files |
-| `/xlogin setspawn` | `xlogin.admin` | Set the login spawn point to your current location |
-| `/xlogin forcelogin <player>` | `xlogin.admin` | Force-authenticate a player |
-| `/xlogin resetpassword <player> <new>` | `xlogin.admin` | Reset a player's password |
-| `/xlogin info <player>` | `xlogin.admin` | View account info (register date, IPs, login count) |
-| `/xlogin accounts <ip>` | `xlogin.admin` | View all accounts from a given IP |
-| `/xlogin import authme <table>` | `xlogin.admin` | Import accounts from an AuthMe database table |
-| `/xlogin import jpremium <table>` | `xlogin.admin` | Import accounts from an JPremium database table |
-| `/unregister <player>` | `xlogin.admin` | Delete a player's account |
-
-### Permissions
+| `/xlogin reload` | `xlogin.admin` | Reload config and language files |
+| `/xlogin setspawn` | `xlogin.admin` | Set the login spawn |
+| `/xlogin forcelogin <player>` | `xlogin.admin` | Authenticate a player |
+| `/xlogin resetpassword <player> <new>` | `xlogin.admin` | Reset a password |
+| `/xlogin info <player>` | `xlogin.admin` | Registration date, addresses, login count |
+| `/xlogin accounts <ip>` | `xlogin.admin` | Accounts seen from an address |
+| `/xlogin import authme <table>` | `xlogin.admin` | Import from AuthMe |
+| `/xlogin import jpremium <table>` | `xlogin.admin` | Import from JPremium |
+| `/unregister <player>` | `xlogin.admin` | Delete an account |
 
 | Permission | Description |
 |-----------|-------------|
-| `xlogin.admin` | Access to all admin commands |
-| `xlogin.notify` | Receive admin notifications (failed logins, registrations) |
-| `xlogin.update` | Receive update notifications on join |
-
----
+| `xlogin.admin` | Every admin command |
+| `xlogin.notify` | Failed logins and registrations |
+| `xlogin.update` | Update notifications on join |
 
 ## Configuration
 
-### config.yml
-
 ```yaml
-# Enable debug logging
 debug: false
 
-# ============================================
-# Authentication Settings
-# ============================================
-
-# Session timeout in minutes (player stays logged in after disconnect)
-# Set to 0 to require login every time
-session-timeout: 30
-
-# Maximum login attempts before kick
+session-timeout: 30        # minutes a session survives a disconnect, 0 = login every time
 max-login-attempts: 5
+login-timeout: 60          # seconds to log in after joining, 0 = no limit
 
-# Time in seconds to login after joining (0 = unlimited)
-login-timeout: 60
-
-# Password length limits
 min-password-length: 6
 max-password-length: 32
-
-# Require uppercase + lowercase + number in password
 require-strong-password: false
+max-accounts-per-ip: 3     # 0 = no limit
 
-# Maximum accounts per IP (0 = unlimited)
-max-accounts-per-ip: 3
-
-# ============================================
-# Player Restrictions (before login)
-# ============================================
-
-# Hide player from others until logged in (invisible + hidden from tab)
+# --- Before login ---
 hide-unlogged-players: true
-
-# Apply a blindness effect to unlogged players (dark screen until login)
-# Independent from hide-unlogged-players (e.g. set to false for a Limbo server)
 blindness-effect: true
-
-# Prevent movement before login (allows head rotation)
-block-movement: true
-
-# Prevent all interactions before login
+block-movement: true       # head rotation still allowed
 block-interactions: true
-
-# Hide quit message if player disconnects without authenticating
 hide-quit-if-not-logged: true
 
-# Commands allowed before login (always includes /login, /register, /l, /reg, /2fa)
+# /login, /register, /l, /reg and /2fa are always allowed
 allowed-commands:
   - "/help"
 
-# Teleport player to a fixed location on join (before login)
 teleport-to-spawn: false
-
-# Spawn location (set with /xlogin setspawn or manually here)
 spawn-location:
   world: "world"
   x: 0.0
@@ -195,10 +150,6 @@ spawn-location:
   z: 0.0
   yaw: 0.0
   pitch: 0.0
-
-# ============================================
-# Name Validation
-# ============================================
 
 name-validation:
   enabled: true
@@ -209,196 +160,113 @@ name-validation:
     - "server"
     - "console"
 
-# ============================================
-# Registration & Login Behavior
-# ============================================
-
-# Allow new registrations
 allow-registration: true
-
-# Kick unregistered players who don't register within timeout
-force-registration: true
-
-# Show last login date and IP after successful authentication
+force-registration: true   # kick players who do not register in time
 show-last-login: true
 
-# ============================================
-# Security
-# ============================================
-
-# Notify admins on failed login (permission: xlogin.notify)
+# --- Security ---
 notify-on-failed-login: true
-
-# Log all login/register events
 log-events: true
+ip-lock: false             # only accept a login from the last known address
 
-# Only allow login from the last known IP
-ip-lock: false
-
-# Temporary IP ban and rate limiting
 security:
-  # Ban duration in minutes after max failed attempts
-  ip-ban-duration: 30
-  # Max failed attempts from same IP before temp-ban
-  ip-rate-limit-max: 10
-  # Time window for rate limiting (in minutes)
-  ip-rate-limit-window: 10
+  ip-ban-duration: 30       # minutes
+  ip-rate-limit-max: 10     # failed attempts from one address
+  ip-rate-limit-window: 10  # minutes
 
-# ============================================
-# Premium Auto-Login
-# ============================================
-
-# Per-player online-mode via Netty pipeline injection.
-# Premium players are verified with Mojang's session server.
-# They connect seamlessly with their real skin, no /register or /login needed.
-# Cracked players using a premium name are automatically disconnected.
-#
-# New premium players: auto-detected via Mojang API, auto-registered.
-# Existing players: use /premium to enable, /unpremium to disable.
+# --- Premium auto-login ---
 premium:
   enabled: false
-  # strict = every Mojang-existing name must verify, opt-in = only /premium accounts
-  mode: "opt-in"
-  # OFFLINE = plugin-generated UUIDs, REAL = Mojang UUIDs
-  uuid-mode: "OFFLINE"
-  # Proxy mode only: how long (ms) the backend waits for the verified profile the
-  # proxy sends over Redis / the xlogin:premium channel before falling back to the
-  # password prompt. Only accounts flagged premium in the database are held back.
-  # 0 disables the wait. Max 10000.
-  proxy-grace-ms: 2000
+  mode: "opt-in"           # strict = every non-Bedrock player verifies, opt-in = /premium only
+  uuid-mode: "OFFLINE"     # OFFLINE = UUIDs from the name, REAL = Mojang UUIDs
+  proxy-grace-ms: 2000     # backend wait for the proxy profile, 0 disables, max 10000
 
-# ============================================
-# Messages Display
-# ============================================
-
-# Toggle chat messages on automatic authentication
-# Only affects LOBBY/GAME servers (AUTH never shows messages)
+# --- Messages ---
+# LOBBY and GAME only; AUTH never shows them.
 messages:
-  session-resumed: true       # "Session resumed" on reconnect
-  premium-auto-logged: true   # "Authenticated automatically" for premium
-  login-success: true         # "Successfully logged in" after /login
+  session-resumed: true
+  premium-auto-logged: true
+  login-success: true
 
-# Title/subtitle shown on join
+# Texts live in lang/<code>.yml; timings and colours here.
 login-title:
   enabled: true
-  login-title: "<gold><bold>Welcome back!"
-  login-subtitle: "<gray>Use <white>/login <password>"
-  register-title: "<gold><bold>Welcome!"
-  register-subtitle: "<gray>Use <white>/register <password> <password>"
   fade-in: 10
   stay: 100
   fade-out: 10
 
-# Boss bar countdown
 login-bossbar:
   enabled: true
-  text: "<red>Please authenticate - {time}s remaining"
   color: RED
 
-# Action bar reminder (separate messages for login vs register)
 login-actionbar:
   enabled: true
-  login-text: "<yellow>... Use /login <password> ..."
-  register-text: "<yellow>... Use /register <password> <password> ..."
 
-# ============================================
-# Proxy (BungeeCord / Velocity)
-# ============================================
-
+# --- Proxy ---
 proxy:
   enabled: false
-  # Server role: AUTH, LOBBY, or GAME
-  #   AUTH  - Login/register server. Redirects to lobby after auth.
-  #   LOBBY - Main hub. Session auto-login. Invalid session -> sent to auth.
-  #   GAME  - Sub-server. Session auto-login. Invalid session -> sent to auth.
-  role: AUTH
-  # Server to redirect to after authentication (AUTH role)
+  role: AUTH               # AUTH, LOBBY or GAME
   redirect-server: "lobby"
-  # Server to send unauthenticated players to (LOBBY/GAME roles)
   auth-server: "auth"
-  # Delay before redirect in ticks (20 = 1 second)
-  redirect-delay: 20
-  # Kick players who connect to LOBBY/GAME without a valid auth session
-  # Extra security: prevents bypassing the AUTH server (e.g. direct connection to backend)
-  kick-on-bypass: false
-
-# ============================================
-# Two-Factor Authentication (2FA / TOTP)
-# ============================================
+  redirect-delay: 20       # ticks
+  kick-on-bypass: false    # kick anyone reaching LOBBY or GAME without a session
 
 two-factor:
   enabled: false
 
-# ============================================
-# Bedrock
-# ============================================
-
 bedrock:
-  # Auto-login Bedrock players (authenticated via Xbox Live)
   auto-login: true
-
-# ============================================
-# Update Checker
-# ============================================
 
 update:
   check: true
   notifications: true
 ```
 
----
-
-## Proxy Setup Guide
-
-XLogin is a **single JAR** that works on Velocity, BungeeCord, and Paper. Place the same file on both the proxy and backend servers.
-
-### Architecture
+## Network setup
 
 ```
   Velocity / BungeeCord
   + XLogin.jar (proxy mode)
          |
-         ├─ Premium player? → Direct to LOBBY (skips auth)
-         ├─ Valid session?   → Direct to LOBBY (skips auth)
-         └─ Otherwise        → AUTH server
+         ├─ Premium player? → LOBBY, auth skipped
+         ├─ Valid session?  → LOBBY, auth skipped
+         └─ Otherwise       → AUTH
                                 |
     +-----------+-----------+---+
     |           |           |
   AUTH       LOBBY        GAME
   + XLogin   + XLogin    + XLogin
-  /login     Session     Session
+  /login     session     session
   /register  auto-login  auto-login
 ```
 
-### Setup
-
-**1. Proxy** — Place `XLogin.jar` in the proxy's `plugins/` folder. Configure `plugins/xlogin/config.yml`:
+Proxy, `plugins/xlogin/config.yml`:
 
 ```yaml
 database:
   type: MYSQL
   host: localhost
   port: 3306
-  database: minecraft    # Same as XCore
+  database: minecraft    # the same one XCore uses
   username: root
   password: ""
 
 redis:
-  enabled: true          # Recommended
+  enabled: true          # recommended
   host: localhost
   port: 6379
   password: ""
 
-premium-strict-mode: false  # Must match backend
-redirect-server: "lobby"    # Where premium/session players go
-session-timeout: 30         # Must match backend
+premium-strict-mode: false  # must match the backends
+redirect-server: "lobby"
+session-timeout: 30         # must match the backends
 ```
 
-**2. Backend servers** — Place `XLogin.jar` in `plugins/XCore/addons/` on each server.
+Auth server:
 
-Auth server (`config.yml`):
 ```yaml
-premium-auto-login: true
+premium:
+  enabled: true
 proxy:
   enabled: true
   role: AUTH
@@ -406,177 +274,98 @@ proxy:
   redirect-delay: 20
 ```
 
-Lobby / Game servers:
+Lobby and game servers:
+
 ```yaml
-premium-auto-login: true
+premium:
+  enabled: true
 proxy:
   enabled: true
   role: LOBBY    # or GAME
   auth-server: "auth"
 ```
 
-### Connection Flow
+Sessions live in `xlogin_sessions`, shared by every server. Redis makes propagation instant but is
+not required.
 
-1. Player connects to the proxy.
-2. XLogin (proxy) checks the database:
-   - **Premium player** → forces online-mode, Mojang handshake, routes **directly to lobby** (skips auth entirely).
-   - **Valid session** → routes **directly to lobby** (skips auth).
-   - **Otherwise** → routes to the **AUTH** server.
-3. On the AUTH server:
-   - Cracked player: `/register` or `/login` → redirected to lobby after auth.
-   - Premium player (if not routed by proxy): auto-login → redirect to lobby.
-4. On LOBBY/GAME: session is valid → silently authenticated.
-5. If a player reaches LOBBY/GAME without a valid session → **kicked** (proxy bypass protection).
+## Premium auto-login
 
-### Cross-Server Sessions
+### Standalone
 
-Sessions are stored in the shared XCore database (`xlogin_sessions` table). All servers see the same sessions. Redis is recommended for instant propagation but not required.
+XLogin injects a handler into the Netty pipeline:
 
----
+1. The player connects to the offline-mode server.
+2. The handler intercepts `LoginStart`.
+3. XLogin checks whether the name is a premium account, through the API or the database flag.
+4. An `EncryptionRequest` goes to the client.
+5. The client authenticates with Mojang and answers with `EncryptionResponse`.
+6. XLogin decrypts the shared secret and enables AES/CFB8.
+7. It verifies with Mojang's `hasJoined` endpoint.
+8. On success the Mojang UUID and skin are kept and the login continues.
+9. On join the account is created if needed, the skin applied, the player authenticated.
 
-## Premium Auto-Login
+### Behind a proxy
 
-### How It Works
+1. The player reaches the proxy.
+2. XLogin checks the database for `premium=1`, or asks Mojang in strict mode.
+3. Online mode is forced for that connection and the proxy runs the handshake.
+4. The verified profile is sent to the backend over Redis and plugin messaging.
+5. The player is routed to the lobby.
 
-Premium auto-login works differently depending on your setup:
+That profile can reach the backend a few ticks after `PlayerJoinEvent`, so premium-flagged accounts
+are held for `premium.proxy-grace-ms`, two seconds by default, before the password prompt. Only
+players the proxy is expected to verify are held. A grace period that runs out is logged with the
+player's name.
 
-**Standalone (no proxy):**
-XLogin injects a custom handler into the server's Netty pipeline (same technique as JPremium):
+### Strict or opt-in
 
-1. Player connects to the server (offline-mode).
-2. XLogin's Netty handler intercepts the `LoginStart` packet.
-3. Checks if the player is a premium Mojang account (via API or database flag).
-4. If premium: sends an `EncryptionRequest` to the client.
-5. The client authenticates with Mojang and responds with `EncryptionResponse`.
-6. XLogin decrypts the shared secret, enables AES/CFB8 encryption on the channel.
-7. Verifies with Mojang's `hasJoined` session server endpoint.
-8. If verified: stores the player's Mojang UUID and skin textures, lets the login proceed.
-9. On join: auto-registers (if new), applies premium skin, authenticates instantly.
+`premium.mode` lives in the backend config; the proxy carries the same choice as
+`premium-strict-mode`.
 
-**Behind a proxy (Velocity / BungeeCord):**
-The Netty injection is disabled behind a proxy. Instead, XLogin on the proxy handles verification directly:
+| Mode | Behaviour |
+|------|-----------|
+| `strict` | Any name existing as a Mojang account with no account here has to verify. A verified account is flagged premium and verified on every connection. `/premium` and `/unpremium` are disabled. |
+| `opt-in` | Only players who ran `/premium` are verified. |
 
-1. Player connects to the proxy.
-2. XLogin checks the database for `premium=1` (or Mojang API in strict mode).
-3. If premium: forces online-mode for that connection, proxy does Mojang handshake.
-4. Verified profile (UUID + textures) is sent to the backend via Redis + plugin messaging.
-5. Player is routed directly to the lobby (skips auth server).
+### Standalone setup
 
-That profile travels **outside** the login sequence, so it can reach the backend a few ticks after
-`PlayerJoinEvent`. The backend therefore holds premium-flagged accounts for `premium.proxy-grace-ms`
-(2s by default) before showing the password prompt. Without it, a late profile meant the player was
-asked to `/login` even though they are premium. Only the players the proxy actually verifies are
-held back — premium accounts, plus names that have no account yet in strict mode — so a cracked
-player who already registered is never delayed. If the grace period expires, a warning is logged
-naming the player.
+1. Set `online-mode=false` in `server.properties`. XLogin runs the handshake itself; a server
+   already in online mode runs a second one and the client is disconnected with `Tried to switch to
+   AUTHORIZING from ENCRYPTING`. Premium auto-login refuses to start when it detects online mode.
+2. Set `premium.enabled: true`.
+3. Pick `premium.mode`.
+4. Restart.
 
-See the [Proxy Setup Guide](#proxy-setup-guide) for installation instructions.
+## Username changes
 
-### Security
+A premium player changing their name changes their offline UUID. XLogin migrates the account:
 
-- **Name stealing protection** (strict mode): A cracked player using a premium username cannot complete the Mojang handshake and is disconnected automatically.
-- **Encryption**: The connection is encrypted with AES/CFB8 after the handshake, same as vanilla online-mode.
-- **Existing accounts**: Players who already registered as cracked are not forced into premium mode. They can opt-in with `/premium` (opt-in mode only).
-- **Console security**: `/login`, `/register`, and `/changepassword` commands are masked from console logs.
+1. The player connects under the new name.
+2. The handshake returns the same Mojang UUID.
+3. XLogin finds the old account: same `mojang_uuid`, different offline UUID.
+4. `player_uuid` is updated in `xlogin_accounts`, `xlogin_sessions` and `xlogin_2fa`, in one
+   transaction.
+5. A `MIGRATE` sync event notifies the other servers.
 
-### Strict Mode vs Opt-In Mode
+Password, premium flag, 2FA, email and sessions are kept. Only applies in `uuid-mode: OFFLINE`.
 
-The `premium.mode` setting controls how premium detection works for new players. It lives in the backend `config.yml`; the proxy carries the same choice as `premium-strict-mode`.
+## UUID modes
 
-| Mode | Config | Behavior |
-|------|--------|----------|
-| **STRICT** | `premium.mode: "strict"` | Any username that exists as a Mojang account and has no account here yet is forced through verification, so cracked players **cannot** take a premium name. A verified account is flagged premium and verified again on every connection. `/premium` and `/unpremium` commands are disabled. Best for: maximum security. |
-| **OPT-IN** | `premium.mode: "opt-in"` | Only players who used `/premium` are verified. Everyone `/register`s first, then can opt-in. `/premium` and `/unpremium` commands available. Best for: mixed servers. |
+| Mode | Behaviour |
+|------|-----------|
+| `OFFLINE` | UUIDs computed from the name. Premium verification still runs for authentication. Default. |
+| `REAL` | Verified premium players get their Mojang UUID, set through Paper's `PlayerProfile` API during `AsyncPlayerPreLoginEvent`. Enables cosmetics on Lunar and Badlion. Cracked players keep offline UUIDs. |
 
-### Setup (Standalone)
+Changing `uuid-mode` once players have data is destructive: premium UUIDs change and their data in
+other plugins is orphaned.
 
-1. Set `online-mode=false` in `server.properties`. XLogin runs the Mojang handshake itself, one player at a time; a server already in online-mode runs a second one and the client is disconnected with `Tried to switch to AUTHORIZING from ENCRYPTING`. Premium auto-login refuses to start and says so when it detects online-mode.
-2. Set `premium-auto-login: true` in `config.yml`.
-3. Choose your mode: `premium.mode: "strict"` or `"opt-in"`.
-4. Restart the server.
-5. **Strict mode**: Premium players are auto-detected on first connection. Cracked players cannot use premium names.
-6. **Opt-in mode**: All new players `/register` normally. Premium players can then `/premium` to enable auto-login.
+## Password recovery by email
 
-### Setup (Proxy)
+Set `email-recovery.enabled`, fill in the SMTP settings, reload.
 
-1. Place `XLogin.jar` in the proxy's `plugins/` folder AND in `plugins/XCore/addons/` on each backend.
-2. Configure the proxy's `config.yml` with the same database and Redis as XCore.
-3. Set `premium-strict-mode` to match your backend config.
-4. On each backend: set `premium-auto-login: true` and `proxy.enabled: true`.
-5. Restart the proxy and all backend servers.
-
----
-
-## Premium Username Change (Auto-Migration)
-
-When a premium player changes their Minecraft username on Mojang, their offline UUID changes (it's computed from the name). XLogin detects this and automatically migrates their account.
-
-### How It Works
-
-1. Player connects with their new username (e.g. "Alex" → "Alex2024").
-2. Netty handshake verifies with Mojang → same Mojang UUID as before.
-3. XLogin checks the database: finds the old account with the same `mojang_uuid` but a different offline UUID.
-4. Automatic migration: updates `player_uuid` in `xlogin_accounts`, `xlogin_sessions`, and `xlogin_2fa` in a single transaction.
-5. Publishes a `MIGRATE` sync event for cross-server notification.
-6. Player sees "Your account has been migrated from your old username. Welcome back!"
-
-No data is lost. The player keeps their password, premium flag, 2FA, email, and sessions.
-
-**Note:** This feature only applies in `uuid-mode: OFFLINE`. In `REAL` mode, the Mojang UUID is used directly, so a username change doesn't affect the UUID.
-
----
-
-## UUID Modes
-
-The `uuid-mode` setting controls how UUIDs are assigned to premium players.
-
-| Mode | Config | Behavior |
-|------|--------|----------|
-| **OFFLINE** | `uuid-mode: OFFLINE` | All players use offline UUIDs (derived from name). Simple and safe. Default. |
-| **REAL** | `uuid-mode: REAL` | Premium players use their real Mojang UUID. Cracked players still use offline UUIDs. Enables cosmetics on Lunar/Badlion clients. |
-
-### OFFLINE Mode (Default)
-
-- All UUIDs are computed from the player name: `nameUUIDFromBytes("OfflinePlayer:" + name)`
-- Premium verification still happens for authentication, but the UUID stays offline-based
-- No risk of data loss when switching between premium/cracked
-
-### REAL Mode
-
-- Verified premium players get their real Mojang UUID (set via Paper's `PlayerProfile` API during `AsyncPlayerPreLoginEvent`)
-- Cosmetics on modified clients (Lunar, Badlion, etc.) work because the UUID matches the Mojang account
-- Cracked players still get offline UUIDs
-- A cracked player and a premium player with the same name will have different UUIDs (correct behavior)
-
-**WARNING:** Changing `uuid-mode` after players have data is destructive. Premium players' UUIDs will change, orphaning their data in other plugins. This is a "set once at server setup" decision.
-
----
-
-## Email Password Recovery
-
-Players can link an email to their account and use it to recover their password if forgotten.
-
-### Setup
-
-1. Enable in config: `email-recovery.enabled: true`
-2. Configure SMTP settings (host, port, username, password, from address, TLS)
-3. Restart or `/xlogin reload`
-
-### Player Commands
-
-- `/email set <email>` — Link an email to your account (must be authenticated)
-- `/email remove` — Remove linked email
-- `/recover <username>` — Request a recovery code (sent to linked email)
-- `/recover <username> <code> <newpassword>` — Reset password with the recovery code
-
-### How It Works
-
-1. Player forgets their password.
-2. Runs `/recover <username>` → XLogin sends a 6-digit code to their linked email.
-3. Player enters `/recover <username> <code> <newpassword>` → password is reset.
-4. Player can now `/login` with the new password.
-
-### Configuration
+- `/email set <email>`, `/email remove`, both for an authenticated player.
+- `/recover <username>` sends a six-digit code.
+- `/recover <username> <code> <new password>` resets the password.
 
 ```yaml
 email-recovery:
@@ -589,129 +378,84 @@ email-recovery:
     from: "noreply@example.com"
     tls: true
   code-expiry: 10  # minutes
-  cooldown: 5      # minutes between requests
+  cooldown: 5      # minutes between two requests
 ```
 
-Recovery codes are stored in memory (not database). They expire after `code-expiry` minutes. A cooldown prevents spam.
+Codes are kept in memory, not in the database.
 
----
+## Two-factor authentication
 
-## Two-Factor Authentication (2FA)
+Set `two-factor.enabled`. A player runs `/2fa setup`, adds the secret to their app and confirms with
+`/2fa <code>`. Logins then ask for the password and the code. `/2fa disable` turns it off,
+`/unregister <player>` removes the account and its 2FA.
 
-XLogin supports TOTP (Time-based One-Time Password), compatible with Google Authenticator, Authy, Microsoft Authenticator, and similar apps.
+## Blocked before login
 
-### Setup for Players
-
-1. Admin enables it in config: `two-factor.enabled: true`
-2. Player runs `/2fa setup`. They receive a secret key.
-3. Player adds the key to their authenticator app.
-4. Player runs `/2fa <code>` with the 6-digit code from the app to confirm.
-5. On future logins, after entering the password with `/login`, the player must also enter `/2fa <code>`.
-
-### Disable
-
-- Player: `/2fa disable` (must be authenticated)
-- Admin: `/unregister <player>` removes the account including 2FA.
-
----
-
-## Player Restrictions
-
-While unauthenticated, players are restricted from:
-
-| Action | Behavior |
-|--------|----------|
-| Vision | Optional blindness effect (`blindness-effect`, on by default) |
-| Movement (walking) | Position locked, head rotation allowed |
+| Action | Behaviour |
+|--------|-----------|
+| Vision | Blindness, optional |
+| Walking | Position locked, head rotation allowed |
 | Chat | Blocked |
-| Commands | Only `/login`, `/register`, `/l`, `/reg`, `/2fa`, `/recover`, `/email`, and configured allowed commands |
-| Block break/place | Blocked |
+| Commands | `/login`, `/register`, `/l`, `/reg`, `/2fa`, `/recover`, `/email` and what you allow |
+| Breaking and placing blocks | Blocked |
 | Interactions | Blocked |
 | Inventory | Blocked |
-| Item drop/pickup | Blocked |
-| Entity damage (give/receive) | Blocked |
-| Vehicle enter | Blocked |
-| Portal use | Blocked |
-| Teleportation (non-plugin) | Blocked |
-| Hand swap | Blocked |
+| Dropping and picking up items | Blocked |
+| Damage, given and taken | Blocked |
+| Vehicles | Blocked |
+| Portals | Blocked |
+| Teleports not from a plugin | Blocked |
+| Swapping hands | Blocked |
 
----
+## Database
 
-## Database Tables
+| Table | Contents |
+|-------|----------|
+| `xlogin_accounts` | UUID, name, password hash, addresses, login count, premium flag, Mojang UUID, email |
+| `xlogin_sessions` | Active sessions |
+| `xlogin_ip_bans` | Temporarily banned addresses |
+| `xlogin_2fa` | TOTP secrets |
 
-XLogin creates the following tables in XCore's shared database:
+Created on first start. Column migrations are applied automatically.
 
-| Table | Purpose |
-|-------|---------|
-| `xlogin_accounts` | Player accounts (UUID, name, password hash, IPs, login count, premium flag, Mojang UUID, email) |
-| `xlogin_sessions` | Active sessions for cross-server auto-login (UUID, IP, timestamp) |
-| `xlogin_ip_bans` | Temporarily banned IPs (IP, reason, expiry) |
-| `xlogin_2fa` | 2FA TOTP secrets (UUID, secret key, enabled date) |
-
-All tables are created automatically on first startup. Column migrations (premium, mojang_uuid) are applied automatically.
-
----
-
-## AuthMe Migration
-
-To import accounts from an AuthMe database:
+## Importing from AuthMe or JPremium
 
 ```
-/xlogin import authme <table_name>
+/xlogin import authme <table>
+/xlogin import jpremium <table>
 ```
 
-**Important notes:**
-- The AuthMe table must be in the **same database** as XCore.
-- Passwords are **not** migrated (AuthMe uses `$SHA$salt$hash`, XLogin uses a different format). Imported players will need to reset their password via `/changepassword` or an admin can use `/xlogin resetpassword <player> <newpassword>`.
-- Only players who already exist in XCore's `xcore_players` table are imported.
-- Duplicate accounts (already registered in XLogin) are skipped.
+JPremium's default table is `jp_data`. In both cases:
 
----
+- The table has to be in the same database as XCore.
+- Passwords are not migrated. Imported players reset theirs with `/changepassword`, or an admin uses
+  `/xlogin resetpassword`.
+- Only players already in XCore's `players` table are imported.
+- Accounts already in XLogin are skipped.
+- From JPremium, the premium flag and the Mojang UUID are imported.
 
-## JPremium Migration
+## Languages
 
-To import accounts from a JPremium database:
+`lang/<code>.yml`, in [MiniMessage](https://docs.advntr.dev/minimessage/format.html), following
+XCore's `language` setting. English and French are bundled. The title, boss bar and action bar texts
+live there; their timings and colours stay in `config.yml`.
 
-```
-/xlogin import jpremium <table_name>
-```
-
-The default JPremium table name is `jp_data`.
-
-**Important notes:**
-- The JPremium table must be in the **same database** as XCore.
-- Passwords are **not** migrated (JPremium uses SHA256/SHA512/BCrypt, XLogin uses a different salt:hash format). Imported players will need to reset their password via `/changepassword` or an admin can use `/xlogin resetpassword <player> <newpassword>`.
-- **Premium status** and **Mojang UUID** are imported from JPremium.
-- Only players who already exist in XCore's `players` table are imported.
-- Duplicate accounts (already registered in XLogin) are skipped.
-
----
-
-## Language File
-
-All messages support [MiniMessage](https://docs.advntr.dev/minimessage/format.html) formatting with placeholders. Language files live in `lang/<code>.yml` and follow XCore's single `language` setting — English and French are bundled, and an addon with no translation for the chosen language falls back to English.
-
-### Available Placeholders
-
-| Placeholder | Used In |
+| Placeholder | Used in |
 |-------------|---------|
-| `{password}` | Display only (not a real placeholder) |
-| `{attempts}` / `{max}` | Login failed message |
-| `{min}` / `{max}` | Password length messages |
+| `{attempts}`, `{max}` | Failed login |
+| `{min}`, `{max}` | Password length |
 | `{player}` | Admin notifications, info, accounts |
-| `{ip}` | Admin notifications, last login info, accounts |
-| `{date}` | Last login info, account info |
+| `{ip}` | Admin notifications, last login, accounts |
+| `{date}` | Last login, account info |
 | `{time}` | Boss bar countdown |
-| `{count}` | Account info (login count), import result |
+| `{count}` | Login count, import results |
 | `{uuid}` | Account info |
 | `{pattern}` | Name validation |
-| `{server}` | Proxy redirect message |
+| `{server}` | Proxy redirect |
 | `{secret}` | 2FA setup |
 | `{last_login}` | Accounts list |
-| `{email}` | Email set confirmation |
-
----
+| `{email}` | Email confirmation |
 
 ## License
 
-Part of the XCore ecosystem by [Xyness](https://github.com/Xyness).
+Part of the XCore ecosystem, by [Xyness](https://github.com/Xyness).
