@@ -1,13 +1,15 @@
 # Version
-version: 1.1.1
+version: 2.0
 
 # Update date
-date: 17/08/2026
+date: 21/11/2026
 
 # Update notes
 update-notes:
-- "Account and session queries run on the database pool, they no longer wait behind the rest of the plugin"
-- "Requires XCore 1.1"
-- "Fixed teleport-to-spawn sending everyone to 0/64/0"
-- "Fixed account migration blocking a database thread while waiting on the database pool"
-- "The connection limit is read once instead of on every login attempt"
+- "Real plugin now, update XCore to 2.0 first"
+- "If XLogin or XCore can't start, nobody gets in"
+- "Premium players aren't asked to register anymore when Mojang is down"
+- "Fixed fake premium and Bedrock logins"
+- "Changing your password, email or 2FA asks for your password"
+- "Added /xlogin logout"
+- "Lots of captcha, 2FA and session fixes"
