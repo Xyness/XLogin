@@ -644,5 +644,5 @@ Created on first start. Column migrations are applied automatically.
 Questions, bug reports and ideas go to the [Discord](https://discord.com/invite/6sRTGprM95). Every command, setting and screen is documented on [celestis.dev](https://celestis.dev/plugins/xlogin/wiki/getting-started).
 
 <p align="center">
-  <sub>XLogin is part of the XCore family, with <a href="https://celestis.dev/plugins/xbans">XBans</a>, <a href="https://celestis.dev/plugins/xauctionhouse">XAuctionHouse</a> and <a href="https://celestis.dev/plugins/xantilag">XAntiLag</a>. Made by <a href="https://github.com/Xyness">Xyness</a>.</sub>
+  <sub>XLogin is part of the XCore family, with <a href="https://celestis.dev/plugins/xbans">XBans</a>, <a href="https://celestis.dev/plugins/xauctionhouse">XAuctionHouse</a>, <a href="https://celestis.dev/plugins/xantilag">XAntiLag</a> and <a href="https://celestis.dev/plugins/xshop">XShop</a>. Made by <a href="https://github.com/Xyness">Xyness</a>.</sub>
 </p>
